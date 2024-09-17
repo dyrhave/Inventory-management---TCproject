@@ -2,7 +2,7 @@
   "Inventory": [
     {
       "id": 123456,
-      "manufacturer": "Kim",
+      "brand": "Kim",
       "name": "navn",
       "price": 2000,
       "quantity": 4
