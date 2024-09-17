@@ -1,0 +1,17 @@
+{
+  "Inventory": [
+    {
+      "id": 123456,
+      "manufacturer": "Kim",
+      "name": "navn",
+      "price": 2000,
+      "quantity": 4
+    },
+    {
+      "id": 654321,
+      "name": "navn2",
+      "price": 599,
+      "quantity": 2
+    }
+  ]
+}

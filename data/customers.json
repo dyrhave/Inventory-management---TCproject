@@ -1,0 +1,16 @@
+{
+  "Customers": [
+    {
+      "id": "C001",
+      "name": "navn",
+      "email": "navn@email.com",
+      "passwordHash": "kodeordHash"
+    },
+    {
+      "id": "C002",
+      "name": "navn2",
+      "email": "mail@mail.dk",
+      "passwordHash": "passHash"
+    }
+  ]
+}
