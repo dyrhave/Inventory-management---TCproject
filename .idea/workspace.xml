@@ -6,8 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="a7f6b8fe-d77e-4639-a656-766607fd6039" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/customer.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/customer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/inventory.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/inventory.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/inventory.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/inventory.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -18,9 +17,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 5
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="2mBsiWIx7y4YVktC0QzIMrfeAl1" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -30,6 +29,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Python.customer.executor": "Run",
+    "Python.inventory.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
     "node.js.detected.package.eslint": "true",
@@ -37,6 +37,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.keymap",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -56,7 +57,9 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1726561431923</updated>
-      <workItem from="1726561435712" duration="11044000" />
+      <workItem from="1726561435712" duration="12443000" />
+      <workItem from="1726576269736" duration="26000" />
+      <workItem from="1726576304771" duration="11605000" />
     </task>
     <servers />
   </component>
@@ -64,6 +67,7 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/itshop$inventory.coverage" NAME="inventory Coverage Results" MODIFIED="1726642768463" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/itshop$customer.coverage" NAME="customer Coverage Results" MODIFIED="1726571699426" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
   </component>
 </project>

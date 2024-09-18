@@ -1,14 +1,14 @@
 {
   "Inventory": [
     {
-      "id": 123456,
+      "inv_id": 1,
       "brand": "Kim",
       "name": "navn",
       "price": 2000,
       "quantity": 4
     },
     {
-      "id": 654321,
+      "inv_id": 2,
       "name": "navn2",
       "price": 599,
       "quantity": 2
