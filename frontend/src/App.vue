@@ -1,10 +1,38 @@
 <template>
   <nav>
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
+    <router-link to="/dashboard">Dashboard</router-link>
+    <router-link to="/login">Login</router-link>
+    <router-link to="/register">Register</router-link>
+    <a @click="logout" v-if="isLoggedIn">Logout</a>
   </nav>
   <router-view/>
 </template>
+
+<script>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import api from './api'
+
+export default {
+  name: 'app',
+  setup() {
+    const router = useRouter()
+    const isLoggedIn = ref(false)
+
+    onMounted(() => {
+      isLoggedIn.value = !!localStorage.getItem('token')
+    })
+
+    const logout = () => {
+      api.logout()
+      isLoggedIn.value = false
+      router.push('/login')
+    }
+
+    return { isLoggedIn, logout }
+  }
+}
+</script>
 
 <style lang="scss">
 #app {
