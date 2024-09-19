@@ -1,9 +1,14 @@
+import os
+
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+app.config['JWT_SECRET_KEY'] = 'Qwerty1234'
+jwt = JWTManager(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///computeagain.db'
 db = SQLAlchemy(app)
 
@@ -12,6 +17,17 @@ order_items = db.Table('order_items',
                db.Column('inventory_id', db.Integer, db.ForeignKey('inventory.id'), primary_key=True),
                db.Column('quantity', db.Integer, nullable=False)
 )
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128))
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -36,6 +52,7 @@ class Order(db.Model):
 
 
 @app.route('/customers', methods=['GET', 'POST'])
+@jwt_required()
 def handle_customers():
     if request.method == 'POST':
         data = request.json
@@ -53,6 +70,7 @@ def handle_customers():
         } for c in customers])
 
 @app.route('/customers/<int:customer_id>', methods=['GET', 'PUT', 'DELETE'])
+@jwt_required()
 def handle_customer(customer_id):
     customer = Customer.query.get_or_404(customer_id)
 
@@ -82,6 +100,7 @@ def handle_customer(customer_id):
 
 
 @app.route('/inventory', methods=['GET', 'POST'])
+@jwt_required()
 def handle_inventory():
     if request.method == 'POST':
         data = request.json
@@ -100,6 +119,7 @@ def handle_inventory():
         } for i in items])
 
 @app.route('/inventory/<int:item_id>', methods=['GET', 'PUT', 'DELETE'])
+@jwt_required()
 def handle_inventory_item(item_id):
     item = Inventory.query.get_or_404(item_id)
 
@@ -131,6 +151,7 @@ def handle_inventory_item(item_id):
 
 
 @app.route('/orders', methods=['GET', 'POST'])
+@jwt_required()
 def handle_orders():
     if request.method == 'POST':
         data = request.json
@@ -167,6 +188,7 @@ def handle_orders():
 
 
 @app.route('/orders/<int:order_id>', methods=['GET', 'DELETE'])
+@jwt_required()
 def handle_order(order_id):
     order = Order.query.get_or_404(order_id)
 
@@ -185,3 +207,27 @@ def handle_order(order_id):
         db.session.delete(order)
         db.session.commit()
         return jsonify({"message": "Order deleted successfully"})
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    user = User(username=data['username'])
+    user.set_password(data['password'])
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({"message": "User created successfully"}), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    user = User.query.filter_by(username=data['username']).first()
+    if user and user.check_password(data['password']):
+        access_token = create_access_token(identity=user.username)
+        return jsonify(access_token=access_token), 200
+    return jsonify({"message": "Bad username or password"}), 401
+
+@app.route('/protected', methods=['GET'])
+@jwt_required()
+def protected():
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
