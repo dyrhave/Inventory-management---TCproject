@@ -6,19 +6,17 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 app = Flask(__name__)
 CORS(app)
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-app.config['JWT_BLACKLIST_ENABLED'] = timedelta(hours=1)
-jwt = JWTManager(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///computeagain.db'
-db = SQLAlchemy(app)
 
-order_items = db.Table('order_items',
-               db.Column('order_id', db.Integer, db.ForeignKey('order.id'), primary_key=True),
-               db.Column('inventory_id', db.Integer, db.ForeignKey('inventory.id'), primary_key=True),
-               db.Column('quantity', db.Integer, nullable=False)
-)
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'fallback-secret-key')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///computeagain.db')
+
+db = SQLAlchemy(app)
+jwt = JWTManager(app)
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -26,7 +24,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(128))
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -35,14 +33,13 @@ class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    order = db.relationship('Order', backref='customer', lazy=True)
+    orders = db.relationship('Order', backref='customer', lazy=True)
 
 class Inventory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
-    orders = db.relationship('Order', secondary=order_items, backref=db.backref('inventory', lazy=True))
 
 
 class Order(db.Model):
@@ -50,7 +47,36 @@ class Order(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     total = db.Column(db.Float, nullable=False)
-    items = db.relationship('Inventory', secondary=order_items ,backref=db.backref('order', lazy=True))
+
+
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    order = db.relationship('Order', backref='items')
+    inventory = db.relationship('Inventory')
+
+def get_or_404(model, id, abort=None):
+    item = model.query.get(id)
+    if item is None:
+        abort(404, description=f"{model.__name__} with id {id} not found")
+    return item
+
+def create_item(model, data):
+    new_item = model(**data)
+    db.session.add(new_item)
+    db.session.commit()
+    return new_item
+
+def update_item(item, data):
+    for key, value in data.items():
+        setattr(item, key, value)
+    db.session.commit()
+
+def delete_item(item):
+    db.session.delete(item)
+    db.session.commit()
 
 
 @app.route('/customers', methods=['GET', 'POST'])
@@ -74,7 +100,7 @@ def handle_customers():
 @app.route('/customers/<int:customer_id>', methods=['GET', 'PUT', 'DELETE'])
 @jwt_required()
 def handle_customer(customer_id):
-    customer = Customer.query.get_or_404(customer_id)
+    customer = get_or_404(Customer, customer_id)
 
     if request.method == 'GET':
         return jsonify({
@@ -87,17 +113,11 @@ def handle_customer(customer_id):
                 "total": order.total
             } for order in customer.orders]
         })
-
     elif request.method == 'PUT':
-        data = request.json
-        customer.name = data.get('name', customer.name)
-        customer.email = data.get('email', customer.email)
-        db.session.commit()
+        update_item(customer, request.json)
         return jsonify({"message": "Customer updated successfully"})
-
     elif request.method == 'DELETE':
-        db.session.delete(customer)
-        db.session.commit()
+        delete_item(customer)
         return jsonify({"message": "Customer deleted successfully"})
 
 
@@ -221,15 +241,49 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.json
-    user = User.query.filter_by(username=data['username']).first()
-    if user and user.check_password(data['password']):
-        access_token = create_access_token(identity=user.username)
+    username = request.json.get('username', None)
+    password = request.json.get('password', None)
+
+    user = User.query.filter_by(username=username).first()
+
+    if user and user.check_password(password):
+        access_token = create_access_token(identity=username)
         return jsonify(access_token=access_token), 200
-    return jsonify({"message": "Bad username or password"}), 401
+    else:
+        return jsonify({"msg": "Forkert kode eller brugernavn"}), 401
+
+
+@app.route('/dashboard', methods=['GET'])
+@jwt_required()
+def dashboard():
+    current_user = get_jwt_identity()
+    customer_count = Customer.query.count()
+    inventory_count = Inventory.query.count()
+    order_count = Order.query.count()
+    recent_orders = Order.query.order_by(Order.date.desc()).limit(5).all()
+
+    return jsonify({
+        "message": f"Welcome {current_user}!",
+        "stats": {
+            "customer_count": customer_count,
+            "inventory_count": inventory_count,
+            "order_count": order_count
+        },
+        "recent_orders": [{
+            "id": order.id,
+            "customer": order.customer.name,
+            "date": order.date.isoformat(),
+            "total": order.total
+        } for order in recent_orders]
+    }), 200
 
 @app.route('/protected', methods=['GET'])
 @jwt_required()
 def protected():
     current_user = get_jwt_identity()
     return jsonify(logged_in_as=current_user), 200
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
