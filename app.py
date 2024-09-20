@@ -100,7 +100,7 @@ def handle_customers():
 @app.route('/customers/<int:customer_id>', methods=['GET', 'PUT', 'DELETE'])
 @jwt_required()
 def handle_customer(customer_id):
-    customer = get_or_404(Customer, customer_id)
+    customer = Customer.query.get_or_404(customer_id)
 
     if request.method == 'GET':
         return jsonify({
