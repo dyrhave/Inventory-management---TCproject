@@ -3,24 +3,29 @@
     <h1>Dashboard</h1>
     <div v-if="loading">Loading...</div>
     <div v-else-if="error">Error: {{ error }}</div>
-    <div v-else class="metrics">
+    <div v-else-if="dashboardData" class="metrics">
       <div class="metric">
         <h2>Alle Kunder</h2>
-        <p>{{ dashboardData.totalCustomers }}</p>
+        <p>{{ dashboardData.stats.customer_count }}</p>
       </div>
       <div class="metric">
         <h2>Alle Lager Produkter</h2>
-        <p>{{ dashboardData.totalInventory }}</p>
+        <p>{{ dashboardData.stats.inventory_count }}</p>
+      </div>
+      <div class="metric">
+        <h2>Alle Ordrer</h2>
+        <p>{{ dashboardData.stats.order_count }}</p>
       </div>
       <div class="recent-orders">
         <h2>Seneste Ordrer</h2>
         <ul>
-          <li v-for="order in dashboardData.recentOrders" :key="order.id">
-            Ordre #{{ order.id }} - {{ order.customer }} - ${{ order.total }}
+          <li v-for="order in dashboardData.recent_orders" :key="order.id">
+            Ordre #{{ order.id }} - {{ order.customer }} - {{ order.total }} DKK
           </li>
         </ul>
       </div>
     </div>
+    <div v-else>No data available</div>
   </div>
 </template>
 

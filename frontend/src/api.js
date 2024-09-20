@@ -37,17 +37,8 @@ export default {
 
     async getDashboardData() {
         try {
-            const [customers, inventory, orders] = await Promise.all([
-                api.get('/customers'),
-                api.get('/inventory'),
-                api.get('/orders'),
-            ]);
-
-            return {
-                totalCustomers: customers.data.length,
-                totalInventory: inventory.data.length,
-                recentOrders: orders.data.slice(0, 5)
-            };
+            const response = await api.get('/dashboard');
+            return response.data;
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
             throw error;
