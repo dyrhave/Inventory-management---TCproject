@@ -1,146 +1,127 @@
 <template>
-  <div class="min-h-screen bg-gray-100 p-8">
-    <div class="max-w-7xl mx-auto">
-      <h1 class="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+  <div class="space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <MetricCard title="Total Customers" :value="dashboardData?.stats.customer_count || 0" />
+      <MetricCard title="Inventory Items" :value="dashboardData?.stats.inventory_count || 0" />
+      <MetricCard title="Total Orders" :value="dashboardData?.stats.order_count || 0" />
+      <MetricCard title="Revenue (This Month)" :value="formatCurrency(monthlyRevenue)" />
+    </div>
 
-      <div v-if="loading" class="text-center">
-        <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+    <div class="bg-white p-4 rounded-lg shadow" style="height: 500px; max-height: 400px;">
+      <h2 class="text-xl font-semibold mb-4">Revenue Overview</h2>
+      <LineChart :chartData="revenueChartData" :options="chartOptions" />
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-white p-4 rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">Recent Orders</h2>
+        <table class="min-w-full">
+          <thead>
+          <tr>
+            <th class="text-left">Order ID</th>
+            <th class="text-left">Customer</th>
+            <th class="text-left">Date</th>
+            <th class="text-right">Total</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="order in dashboardData?.recent_orders" :key="order.id">
+            <td>#{{ order.id }}</td>
+            <td>{{ order.customer }}</td>
+            <td>{{ formatDate(order.date) }}</td>
+            <td class="text-right">{{ formatCurrency(order.total) }}</td>
+          </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div v-else-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-        <strong class="font-bold">Error:</strong>
-        <span class="block sm:inline">{{ error }}</span>
+      <div class="bg-white p-4 rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">Low Stock Items</h2>
+        <table class="min-w-full">
+          <thead>
+          <tr>
+            <th class="text-left">Item</th>
+            <th class="text-right">Current Stock</th>
+            <th class="text-right">Reorder Level</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="item in lowStockItems" :key="item.id">
+            <td>{{ item.name }}</td>
+            <td class="text-right">{{ item.quantity }}</td>
+            <td class="text-right">{{ item.reorder_level }}</td>
+          </tr>
+          </tbody>
+        </table>
       </div>
-
-      <template v-else-if="dashboardData">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div v-for="(value, key) in dashboardData.stats" :key="key" class="bg-white rounded-lg shadow p-6 flex items-center">
-            <component :is="getIcon(key)" class="w-6 h-6" :class="getIconColor(key)"/>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">{{ getStatLabel(key) }}</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ value }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 class="text-xl font-semibold mb-4">Ordre Oversigt</h2>
-          <BarChart :data="chartData" />
-        </div>
-
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-          <h2 class="text-xl font-semibold p-6">Seneste Ordrer</h2>
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-            </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="order in dashboardData.recent_orders" :key="order.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ order.id }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ order.customer }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatDate(order.date) }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatCurrency(order.total) }}
-              </td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-
-      <div v-else class="text-center text-gray-500">No data available</div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { Users, Package, ShoppingCart } from 'lucide-vue-next';
-import api from '../api';
-// import StatCard from '../components/StatCard.vue';
-import BarChart from '../components/BarChart.vue';
-// import RecentOrdersTable from '../components/RecentOrdersTable.vue';
+<script lang="ts">
+import { defineComponent, computed, onMounted, ref } from 'vue'
+import { useStore } from 'vuex'
+import MetricCard from '@/components/MetricCard.vue'
+import LineChart from '@/components/LineChart.vue'
+import { DashboardData, InventoryItem } from '@/api'
 
-const router = useRouter();
-const dashboardData = ref(null);
-const loading = ref(true);
-const error = ref(null);
+export default defineComponent({
+  name: 'DashboardView',
+  components: {
+    MetricCard,
+    LineChart
+  },
+  setup() {
+    const store = useStore()
+    const dashboardData = ref<DashboardData | null>(null)
+    const lowStockItems = ref<InventoryItem[]>([])
+    const monthlyRevenue = ref(0)
 
-const chartData = computed(() => {
-  if (!dashboardData.value || !dashboardData.value.recent_orders) return [];
-  return dashboardData.value.recent_orders.map(order => ({
-    id: order.id,
-    total: order.total
-  }));
-});
-
-const fetchDashboardData = async () => {
-  try {
-    if (!localStorage.getItem('token')) {
-      router.push('/login');
-      return;
+    const formatCurrency = (value: number): string => {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
     }
-    api.setAuthToken(localStorage.getItem('token'));
-    const data = await api.getDashboardData();
-    if (data && data.recent_orders) {
-      dashboardData.value = data;
-    } else {
-      throw new Error('Invalid data structure');
+
+    const formatDate = (dateString: string): string => {
+      return new Date(dateString).toLocaleDateString()
     }
-  } catch (err) {
-    if (err.response && err.response.status === 401) {
-      router.push('/login');
-    } else {
-      error.value = 'Failed to load dashboard data';
-      console.error(err);
+
+    const revenueChartData = computed(() => ({
+      labels: ['January', 'February', 'March', 'April', 'May', 'June'],
+      datasets: [{
+        label: 'Monthly Revenue',
+        data: [12000, 19000, 3000, 5000, 2000, 3000],
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+      }]
+    }))
+
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: false
     }
-  } finally {
-    loading.value = false;
+
+    onMounted(async () => {
+      await store.dispatch('dashboard/fetchDashboardData')
+      await store.dispatch('inventory/fetchItems')
+
+      dashboardData.value = store.state.dashboard.data
+      lowStockItems.value = store.state.inventory.items
+          .filter((item: InventoryItem) => item.quantity < (item.reorder_level || 10))
+          .slice(0, 5)
+
+      // placeholder revenue
+      monthlyRevenue.value = dashboardData.value?.recent_orders.reduce((acc, order) => acc + order.total, 0) || 0
+    })
+
+    return {
+      dashboardData,
+      lowStockItems,
+      monthlyRevenue,
+      formatCurrency,
+      formatDate,
+      revenueChartData,
+      chartOptions
+    }
   }
-};
-
-const getIcon = (key) => {
-  switch (key) {
-    case 'customer_count': return Users;
-    case 'inventory_count': return Package;
-    case 'order_count': return ShoppingCart;
-    default: return null;
-  }
-};
-
-const getIconColor = (key) => {
-  switch (key) {
-    case 'customer_count': return 'text-blue-500';
-    case 'inventory_count': return 'text-green-500';
-    case 'order_count': return 'text-purple-500';
-    default: return '';
-  }
-};
-
-const getStatLabel = (key) => {
-  switch (key) {
-    case 'customer_count': return 'Alle Kunder';
-    case 'inventory_count': return 'Alle Lager Produkter';
-    case 'order_count': return 'Alle Ordrer';
-    default: return key;
-  }
-};
-
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('da-DK');
-};
-
-const formatCurrency = (value) => {
-  return value.toLocaleString('da-DK', {style: 'currency', currency: 'DKK'});
-};
-
-onMounted(fetchDashboardData);
+})
 </script>

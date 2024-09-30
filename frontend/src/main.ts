@@ -4,6 +4,7 @@ import router from './router'
 import store from './store'
 import api from './api'
 
+
 const token = localStorage.getItem('token');
 if (token) {
     api.setAuthToken(token);

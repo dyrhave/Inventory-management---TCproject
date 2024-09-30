@@ -1,26 +1,52 @@
 <template>
-  <nav>
-    <router-link to="/dashboard">Dashboard</router-link>
-    <router-link to="/login">Login</router-link>
-    <router-link to="/register">Register</router-link>
-    <a @click="logout" v-if="isLoggedIn">Logout</a>
-  </nav>
-  <router-view/>
+  <div class="flex h-screen bg-gray-100">
+    <Sidebar />
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <Header :isLoggedIn="isLoggedIn" @logout="logout" />
+      <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-6">
+        <router-view />
+      </main>
+    </div>
+  </div>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue'
+<script lang="ts">
+import { defineComponent, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import api from './api'
+import { useStore } from 'vuex'
+import Header from '@/components/Header.vue'
+import Sidebar from '@/components/Sidebar.vue'
+import api from '@/api'
 
-export default {
-  name: 'app',
+export default defineComponent({
+  name: 'App',
+  components: {
+    Header,
+    Sidebar
+  },
   setup() {
     const router = useRouter()
+    const store = useStore()
     const isLoggedIn = ref(false)
+
+    const fetchData = () => {
+      if (isLoggedIn.value) {
+        store.dispatch('dashboard/fetchDashboardData')
+        store.dispatch('customers/fetchCustomers')
+        store.dispatch('inventory/fetchItems')
+        store.dispatch('orders/fetchOrders')
+      }
+    }
 
     onMounted(() => {
       isLoggedIn.value = !!localStorage.getItem('token')
+      fetchData()
+    })
+
+    watch(isLoggedIn, (newValue) => {
+      if (newValue) {
+        fetchData()
+      }
     })
 
     const logout = () => {
@@ -31,28 +57,11 @@ export default {
 
     return { isLoggedIn, logout }
   }
-}
+})
 </script>
 
-<style lang="scss">
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
-
-nav {
-  padding: 30px;
-
-  a {
-    font-weight: bold;
-    color: #2c3e50;
-
-    &.router-link-exact-active {
-      color: #42b983;
-    }
-  }
-}
+<style>
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 </style>
